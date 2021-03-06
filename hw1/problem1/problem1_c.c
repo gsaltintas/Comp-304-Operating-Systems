@@ -1,6 +1,8 @@
 /*
 Gül Sena Altıntaş, 64284
 Hw 1, Problem 1.c
+Zombie process
+todo: some problems
 
 */
 
