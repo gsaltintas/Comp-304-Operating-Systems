@@ -5,26 +5,38 @@
 #include <linux/types.h>
 #include <linux/slab.h>
 #include <linux/pid.h>
+#include <linux/sched.h>
+#include <linux/module.h>
+#include <linux/kernel.h>
 
-static int pid;
-module_param(pid, int, 0);
-MODULE_PARM_DESC(pid, "Process id of a process");
+static int mypid;
+module_param(mypid, int, 0);
+MODULE_PARM_DESC(mypid, "Process id of a process");
 
 int kernel_init(void)
 {
     printk(KERN_INFO "Started executing kernel module");
     // check if pid is valid
-    struct pid p = *find_get_pid(pid);
-    // int
-    // if (pid_nr(&p) >= 0)
-    if (pid_nr(get_task_pid(p, PIDTYPE_PID)) >= 0)
+    struct pid *p;
+    struct task_struct *task;
+    p = find_get_pid(mypid);
+    task = pid_task(p, PIDTYPE_PID);
+
+    if (task != NULL)
     {
-        struct task_struct *task = *get_pid_task(&p, PIDTYPE_PID);
-        // printk(KERN_INFO "Process with PID: %d, Parent ID %d, Executable name: %s, Siblings:", pid, &task->real_parent->pid, &task->nameidata);
+
+        printk(KERN_INFO "Process with PID: %d, Parent ID %d, Executable name: %s, Siblings:\n", mypid, task->real_parent->pid, task->comm);
+
+        // iterate over siblings
+        struct task_struct *ptr;
+        list_for_each_entry(ptr, &task->sibling, sibling)
+        {
+            printk(KERN_INFO "\t\tSibling with PID: %d, Executable name: %s\n", ptr->pid, ptr->comm);
+        }
     }
     else
     {
-        printk(KERN_INFO "Provided pid %d doesn't exit\n", pid);
+        printk(KERN_INFO "Provided pid %d doesn't exist.\n", mypid);
     }
     return 0;
 }

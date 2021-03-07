@@ -6,15 +6,6 @@
 #include <linux/slab.h>
 
 int PERSONS_NO = 5;
-struct fileinfo304
-{
-	size_t size;
-	char filename[100];
-	char datecreated[100];
-	int owner_id;
-	int file_id;
-	struct list_head list;
-};
 
 struct birthday
 {
@@ -23,26 +14,16 @@ struct birthday
 	int year;
 	struct list_head list;
 };
-/**
- * The following defines and initializes a list_head object named files_list
- */
 
-static LIST_HEAD(files_list);
 /* This macro defines and initializes the variable birthday list, which is of type
 struct list head */
 static LIST_HEAD(birthday_list);
 
-int fileinfo304_init(void)
+int birthday_init(void)
 {
 	printk(KERN_INFO "Loading Module\n");
 
 	struct birthday *person;
-	// const char *names[PERSONS_NO];
-	// names = {"John",
-	// 		 "Juliette",
-	// 		 "Pierre",
-	// 		 "Max",
-	// 		 "Lauren"};
 	int dates[][3] = {{1, 1, 1990}, {15, 5, 1998}, {26, 3, 1998}, {17, 8, 1998}, {23, 12, 1997}};
 	int i;
 	for (i = 0; i < PERSONS_NO; i++)
@@ -67,7 +48,7 @@ int fileinfo304_init(void)
 	return 0;
 }
 
-void fileinfo304_exit(void)
+void birthday_exit(void)
 {
 
 	printk(KERN_INFO "Removing Module\n");
@@ -80,12 +61,8 @@ void fileinfo304_exit(void)
 	printk(KERN_INFO "Completed kfree, module removed\n");
 }
 
-void part2(void)
-{
-}
-
-module_init(fileinfo304_init);
-module_exit(fileinfo304_exit);
+module_init(birthday_init);
+module_exit(birthday_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Exercise for COMP304");
