@@ -1,13 +1,13 @@
 # Adapted from MakeFile shared in the Discussion Forum by classmate Ahmet Akkoç
-obj-m += problem3_a.o
-obj-m += problem3_b.o
+obj-m += p3a.o
+obj-m += p3b.o
 
 all: parta partb
 
-parta: problem3_a.c
+parta: p3a.c
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
 
-partb: problem3_b.c
+partb: p3b.c
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
 
 clean:

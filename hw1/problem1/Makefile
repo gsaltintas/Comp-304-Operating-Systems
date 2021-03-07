@@ -2,14 +2,14 @@ CC      = gcc
 CFLAGS  = -g
 all: parta partb partc
 
-parta: problem1_a.c
-	$(CC) problem1_a.c $(CFLAGS) -o problem1_a 
+parta: p1a.c
+	$(CC) p1a.c $(CFLAGS) -o p1a 
 
-partb: problem1_b.c
-	$(CC) problem1_b.c $(CFLAGS) -o problem1_b
+partb: p1b.c
+	$(CC) p1b.c $(CFLAGS) -o p1b
 
-partc: problem1_c.c
-	$(CC) problem1_c.c $(CFLAGS) -o problem1_c
+partc: p1c.c
+	$(CC) p1c.c $(CFLAGS) -o p1c
 
 clean:
-	rm -f problem1_a problem1_b problem1_c
+	rm -f p1a p1b p1c

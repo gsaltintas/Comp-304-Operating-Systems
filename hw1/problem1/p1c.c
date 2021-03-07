@@ -36,7 +36,7 @@ Result:
 ps -l
 F S   UID   PID  PPID  C PRI  NI ADDR SZ WCHAN  TTY          TIME CMD
 0 S  1000  3662  3622  0  80   0 -  6235 wait   pts/1    00:00:00 bash
-0 S  1000  7406  3662  0  80   0 -  1127 hrtime pts/1    00:00:00 problem1_c
-1 Z  1000  7407  7406  0  80   0 -     0 -      pts/1    00:00:00 problem1_c <defunct>
+0 S  1000  7406  3662  0  80   0 -  1127 hrtime pts/1    00:00:00 p1c
+1 Z  1000  7407  7406  0  80   0 -     0 -      pts/1    00:00:00 p1c <defunct>
 4 R  1000  7409  3662  0  80   0 -  7582 -      pts/1    00:00:00 ps
 */
