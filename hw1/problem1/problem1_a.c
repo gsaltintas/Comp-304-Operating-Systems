@@ -28,7 +28,6 @@ struct Process fork_(struct Process p)
     }
     else
     {
-        // wait(NULL);
         res = p;
     }
     return res;
@@ -54,20 +53,22 @@ int main(void)
 
 /* 
 Result:
-Base Process ID: 12198, level: 0
-Process ID:: 12199, Parent ID: 12198, level1
-Process ID:: 12200, Parent ID: 12198, level1
-Process ID:: 12201, Parent ID: 12198, level1
-Process ID:: 12208, Parent ID: 12199, level2
-Process ID:: 12204, Parent ID: 12199, level2
-Process ID:: 12209, Parent ID: 12204, level3
-Process ID:: 12203, Parent ID: 12200, level2
-Process ID:: 12212, Parent ID: 12203, level3
-Process ID:: 12210, Parent ID: 12204, level3
-Process ID:: 12205, Parent ID: 12201, level2
-Process ID:: 12211, Parent ID: 12209, level4
-Process ID:: 12207, Parent ID: 12200, level2
-Process ID:: 12202, Parent ID: 12198, level1
-Process ID:: 12206, Parent ID: 12199, level2
-Process ID:: 12213, Parent ID: 12206, level3
+Starting fork program
+Base Process ID: 27482, level: 0
+Process ID:: 27483,	Parent ID: 27482,	level: 1
+Process ID:: 27484,	Parent ID: 27482,	level: 1
+Process ID:: 27485,	Parent ID: 27482,	level: 1
+Process ID:: 27488,	Parent ID: 27483,	level: 2
+Process ID:: 27492,	Parent ID: 27484,	level: 2
+Process ID:: 27486,	Parent ID: 27483,	level: 2
+Process ID:: 27489,	Parent ID: 27484,	level: 2
+Process ID:: 27490,	Parent ID: 27485,	level: 2
+Process ID:: 27491,	Parent ID: 27483,	level: 2
+Process ID:: 27493,	Parent ID: 27488,	level: 3
+Process ID:: 27487,	Parent ID: 27482,	level: 1
+Process ID:: 27494,	Parent ID: 27486,	level: 3
+Process ID:: 27496,	Parent ID: 27489,	level: 3
+Process ID:: 27495,	Parent ID: 27486,	level: 3
+Process ID:: 27497,	Parent ID: 27494,	level: 4
+
  */

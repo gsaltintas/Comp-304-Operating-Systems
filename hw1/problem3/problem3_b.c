@@ -1,3 +1,8 @@
+/**
+Gül Sena Altıntaş, 64284
+Hw 1, Problem 3.b
+Kernel module
+ */
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -24,9 +29,7 @@ int kernel_init(void)
 
     if (task != NULL)
     {
-
         printk(KERN_INFO "Process with PID: %d, Parent ID %d, Executable name: %s, Siblings:\n", mypid, task->real_parent->pid, task->comm);
-
         // iterate over siblings
         struct task_struct *ptr;
         list_for_each_entry(ptr, &task->sibling, sibling)

@@ -1,3 +1,8 @@
+/**
+Gül Sena Altıntaş, 64284
+Hw 1, Problem 3.a
+Entering birthday information to kernel log buffer
+ */
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>

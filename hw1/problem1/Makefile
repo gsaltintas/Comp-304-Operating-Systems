@@ -1,15 +1,15 @@
-CXX = g++
-CXXFLAGS = -Wall -Werror -Wextra -pedantic -std=c++17 -g -fsanitize=address
-LDFLAGS =  -fsanitize=address
+CC      = gcc
+CFLAGS  = -g
+all: parta partb partc
 
-SRC = 
-OBJ = $(SRC:.cc=.o)
-EXEC = main
+parta: problem1_a.c
+	$(CC) problem1_a.c $(CFLAGS) -o problem1_a 
 
-all: $(EXEC)
+partb: problem1_b.c
+	$(CC) problem1_b.c $(CFLAGS) -o problem1_b
 
-$(EXEC): $(OBJ)
-	$(CXX) $(LDFLAGS) -o $@ $(OBJ) $(LBLIBS)
+partc: problem1_c.c
+	$(CC) problem1_c.c $(CFLAGS) -o problem1_c
 
 clean:
-	rm -rf $(OBJ) $(EXEC)
+	rm -f problem1_a problem1_b problem1_c

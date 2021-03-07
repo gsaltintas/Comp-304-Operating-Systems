@@ -22,7 +22,7 @@ int main()
     else
     {
         printf("I am the parent process with id %ld\n", (long)getpid());
-        wait(NULL);
+        wait(NULL);     // wait until child finishes its execution
         printf("Child finished execution\n");
     }
 
@@ -31,11 +31,11 @@ int main()
 
 /*
 Result:
-I am the parent process with id 14720
-Process ID:: 14721,	Parent ID: 14720
+I am the parent process with id 27589
+Process ID: 27590,	Parent ID: 27589
   PID TTY          TIME CMD
- 4062 pts/0    00:00:01 bash
-14720 pts/0    00:00:00 problem1_b
-14721 pts/0    00:00:00 ps
+ 8240 pts/2    00:00:01 bash
+27589 pts/2    00:00:00 problem1_b
+27590 pts/2    00:00:00 ps
 Child finished execution
 */

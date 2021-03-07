@@ -1,11 +1,11 @@
 /**
- * Example program demonstrating UNIX pipes.
- *
- * Figures 3.25 & 3.26
- *
- * @author Silberschatz, Galvin, and Gagne
- * Operating System Concepts  - Ninth Edition
- * Copyright John Wiley & Sons - 2013
+Gül Sena Altıntaş, 64284
+Hw 1, Problem 2
+Pipe example sending time time
+Adapted from Example program demonstrating UNIX pipes given in BlackBoard
+    @author Silberschatz, Galvin, and Gagne
+    Operating System Concepts  - Ninth Edition
+    Copyright John Wiley & Sons - 2013
  */
 
 #include <stdio.h>
@@ -53,7 +53,7 @@ void read_to_pipe(int fd[2], char read_msg[BUFFER_SIZE], char process)
     close(fd[READ_END]);
 }
 
-int fork_(int fd[2], int fd2[2], struct timeval current_time, char write_msg[BUFFER_SIZE], char read_msg[BUFFER_SIZE], char B)
+int fork_(int fd[2], int fd2[2], struct timeval current_time, char write_msg[BUFFER_SIZE], char read_msg[BUFFER_SIZE], char child)
 {
     /* create the pipe */
     if (pipe(fd) == -1)
@@ -79,7 +79,7 @@ int fork_(int fd[2], int fd2[2], struct timeval current_time, char write_msg[BUF
     if (pid > 0)
     {
         send_to_pipe(fd, current_time, write_msg);
-        if (B == 'B')
+        if (child == 'B')
         {
             read_to_pipe(fd2, read_msg, 'A');
             kill(pid, SIGKILL);
@@ -94,8 +94,8 @@ int fork_(int fd[2], int fd2[2], struct timeval current_time, char write_msg[BUF
     {
         // send_to_pipe(fd, current_time, write_msg);
         // B reads and prints the time
-        read_to_pipe(fd, read_msg, B);
-        if (B == 'B')
+        read_to_pipe(fd, read_msg, child);
+        if (child == 'B')
         {
             sleep(3);
             // B forks child process C

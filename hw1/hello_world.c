@@ -1,3 +1,4 @@
+// first c program of the term
 #include <stdio.h>
 
 int main(void)
