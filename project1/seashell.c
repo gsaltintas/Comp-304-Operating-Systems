@@ -326,6 +326,8 @@ void list_shortdir_associations();
 void highlight(char *word, char *file_location, char *color);
 // part 4
 void schedule_alarm(char *hour, char *minute, char *song);
+// pat 5
+void kdiff_all_lines(char *f1, char *f2);
 
 int main()
 {
@@ -452,6 +454,13 @@ int process_command(struct command_t *command)
 				char *minute = strtok(NULL, ":");
 				schedule_alarm(hour, minute, command->args[2]);
 			}
+		}
+		else if (!strcmp(command->name, "kdiff"))
+		{
+			// if (command->arg_count != 5) {
+			// 	printf("Please enter 2 arguments: ");
+			// }
+			kdiff_all_lines(command->args[1], command->args[2]);
 		}
 		else
 		{
@@ -765,14 +774,50 @@ void schedule_alarm(char *hour, char *minute, char *song)
 	strcat(line, hour);
 	strcat(line, " * * * XDG_RUNTIME_DIR=/run/user/$(id -u) DISPLAY=:0.0 /usr/bin/rhythmbox-client --play ");
 	strcat(line, song);
-	strcat(line, "\n");//home/gsa/code/comp304/comp304/project1/resources/m.mp3\n");
+	strcat(line, "\n"); //home/gsa/code/comp304/comp304/project1/resources/m.mp3\n");
 	// printf("%s\n",line);
-	FILE *f = fopen("c.txt", "w");	
+	FILE *f = fopen("c.txt", "w");
 	fputs(line, f);
 	fclose(f);
-	argv[0]="crontab";
-	argv[1]="c.txt";
-	argv[2]=NULL;
+	argv[0] = "crontab";
+	argv[1] = "c.txt";
+	argv[2] = NULL;
 	execvp("crontab", argv);
 	free(line);
+}
+
+// part 5
+void kdiff_all_lines(char *f1, char *f2)
+{
+	FILE *fd1, *fd2;
+	fd1 = fopen(f1, "r");
+	fd2 = fopen(f2, "r");
+	char *line1, *line2;
+	size_t len1 = 0;
+	size_t len2 = 0;
+	ssize_t read1, read2;
+	int line_no = 0;
+	int total_diff = 0;
+	while ((read1 = getline(&line1, &len1, fd1) != -1) && (read2 = getline(&line2, &len2, fd2) != -1))
+	{
+		if (strcmp(line1, line2))
+		{
+
+			printf("%s:Line %d: %s", f1, line_no, line1);
+			printf("%s:Line %d: %s", f2, line_no, line2);
+			total_diff++;
+		}
+		line_no++;
+	}
+	// printf("%ld", read1 * read2);
+	// if (read1 * read2 == -1|| read1*read2==0)
+	// {
+	// 	printf("Wrong!");
+	// 		printf("%s:Line %d: %s", f1,line_no, line1 );
+	// 		printf("%s:Line %d: %s", f2,line_no, line2 );
+	// }
+	if (total_diff == 0)
+		printf("The two files are identical.\n");
+	else
+		printf("%d different lines found.\n", total_diff);
 }

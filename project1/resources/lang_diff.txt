@@ -1,0 +1,2 @@
+The programming language used for this code should be C.
+Python is one of the most commonly used programming languages.
