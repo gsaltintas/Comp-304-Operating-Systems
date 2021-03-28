@@ -322,6 +322,10 @@ void set_shortdir_command(char *command_name);
 void delete_shortdir_command(char *command_name);
 int find_corresponding_location(char *command_name, char *location);
 void list_shortdir_associations();
+// part 3
+void highlight(char *word, char *file_location, char *color);
+// part 4
+void schedule_alarm(char *hour, char *minute, char *song);
 
 int main()
 {
@@ -414,7 +418,40 @@ int process_command(struct command_t *command)
 		/// TODO: do your own exec with path resolving using execv()
 		if (!strcmp(command->name, "shortdir"))
 		{
+
 			handle_shortdir(command);
+		}
+		else if (!strcmp(command->name, "highlight"))
+		{
+			if (command->arg_count != 5)
+			{
+				printf("Please enter 3 arguments: word color filename\n");
+			}
+			else
+			{
+				if (strcmp(command->args[3], "r") && strcmp(command->args[3], "b") && strcmp(command->args[3], "g"))
+				{
+					printf("Allowed colors: r, g, b\n\tInvalid color: %s\n", command->args[3]);
+				}
+				else
+				{
+					highlight(command->args[1], command->args[2], command->args[3]);
+				}
+			}
+		}
+		else if (!strcmp(command->name, "goodMorning"))
+		{
+			if (command->arg_count != 4)
+			{
+				printf("Please enter 2 arguments: time path_to_sound\n");
+			}
+			else
+			{
+				char *time = strdup(command->args[1]);
+				char *hour = strtok(time, ":");
+				char *minute = strtok(NULL, ":");
+				schedule_alarm(hour, minute, command->args[2]);
+			}
 		}
 		else
 		{
@@ -493,38 +530,74 @@ void handle_shortdir(struct command_t *command)
 
 	if (!strcmp(command->args[1], "set"))
 	{
-		printf("Setting\n");
-		set_shortdir_command(command->args[2]);
-	}
-	else if (!strcmp(command->args[1], "jump"))
-	{
-		char *location = malloc(1024);
-		find_corresponding_location(command->args[2], location);
-		if (strcmp(location, ""))
+		if (command->arg_count != 4)
 		{
-			printf("%s\n", location);
-			chdir(location);
+			printf("Please enter 2 arguments: shortdir set shortcut\n");
 		}
 		else
 		{
-			printf("Invalid location: %s\n", command->args[2]);
+			printf("Setting\n");
+			set_shortdir_command(command->args[2]);
 		}
-		free(location);
+	}
+	else if (!strcmp(command->args[1], "jump"))
+	{
+		if (command->arg_count != 4)
+		{
+			printf("Please enter 2 arguments: shortdir jump shortcut\n");
+		}
+		else
+		{
+			char *location = malloc(1024);
+			find_corresponding_location(command->args[2], location);
+			if (strcmp(location, ""))
+			{
+				printf("%s\n", location);
+				chdir(location);
+			}
+			else
+			{
+				printf("Invalid location: %s\n", command->args[2]);
+			}
+			free(location);
+		}
 	}
 	else if (!strcmp(command->args[1], "del"))
 	{
-		// printf("Deleting\n");
-		delete_shortdir_command(command->args[2]);
+		if (command->arg_count != 4)
+		{
+			printf("Please enter 2 arguments: shortdir del shortcut\n");
+		}
+		else
+		{
+			// printf("Deleting\n");
+			delete_shortdir_command(command->args[2]);
+		}
 	}
+
 	else if (!strcmp(command->args[1], "clear"))
 	{
-		remove(SHORTDIR_FILE);
-		shortdir_file = fopen(SHORTDIR_FILE, "a+");
-		fclose(shortdir_file);
+		if (command->arg_count != 3)
+		{
+			printf("Please enter 1 argument: shortdir clear\n");
+		}
+		else
+		{
+			remove(SHORTDIR_FILE);
+			shortdir_file = fopen(SHORTDIR_FILE, "a+");
+			fclose(shortdir_file);
+		}
 	}
 	else if (!strcmp(command->args[1], "list"))
 	{
-		list_shortdir_associations();
+		if (command->arg_count != 3)
+		{
+			printf("Please enter 1 argument: shortdir list\n");
+		}
+		else
+		{
+			list_shortdir_associations();
+		}
 	}
 	else
 	{
@@ -606,7 +679,7 @@ int find_corresponding_location(char *command_name, char *location)
 	 * searches for the command_name in the shortdir files and if found
 	 * copies it to location and returns the line number,
 	 * otherwise copies "" to location and returns -1
-	 */ 
+	 */
 	shortdir_file = fopen(SHORTDIR_FILE, "a+");
 	char ch;
 	char string[255];
@@ -633,7 +706,7 @@ void list_shortdir_associations()
 {
 	/**
 	 * lists all shortdir associations
-	 */ 
+	 */
 	printf("Existing file associations:\n");
 	shortdir_file = fopen(SHORTDIR_FILE, "r");
 	char *line;
@@ -644,4 +717,62 @@ void list_shortdir_associations()
 		printf("\t%s", line);
 	}
 	fclose(shortdir_file);
+}
+
+// part 3
+
+#define KRED "\x1B[31m"
+#define KGRN "\x1B[32m"
+#define KBLU "\x1B[34m"
+#define ANSI_COLOR_RESET "\x1b[0m"
+
+void highlight(char *word, char *file_location, char *color)
+{
+	FILE *file = fopen(file_location, "r");
+	char *string = malloc(1024);
+
+	while (fscanf(file, "%s", string) == 1 || fscanf(file, "%[^\n]", string) == 1)
+	{
+		// new line
+		if (!strcasecmp(word, string))
+		{
+			if (!strcmp(color, "r"))
+				printf("%s%s%s ", KRED, string, ANSI_COLOR_RESET);
+			else if (!strcmp(color, "b"))
+				printf("%s%s%s ", KBLU, string, ANSI_COLOR_RESET);
+			else if (!strcmp(color, "g"))
+				printf("%s%s%s ", KGRN, string, ANSI_COLOR_RESET);
+		}
+		else
+		{
+			printf("%s ", string);
+		}
+	}
+	free(string);
+	fclose(file);
+}
+
+// part 4
+void schedule_alarm(char *hour, char *minute, char *song)
+{
+	/**
+	 * schedules the song to be played at hour:minute
+	 */
+	char *line = malloc(1024);
+	char *argv[3];
+	strcat(line, minute);
+	strcat(line, " ");
+	strcat(line, hour);
+	strcat(line, " * * * XDG_RUNTIME_DIR=/run/user/$(id -u) DISPLAY=:0.0 /usr/bin/rhythmbox-client --play ");
+	strcat(line, song);
+	strcat(line, "\n");//home/gsa/code/comp304/comp304/project1/resources/m.mp3\n");
+	// printf("%s\n",line);
+	FILE *f = fopen("c.txt", "w");	
+	fputs(line, f);
+	fclose(f);
+	argv[0]="crontab";
+	argv[1]="c.txt";
+	argv[2]=NULL;
+	execvp("crontab", argv);
+	free(line);
 }
