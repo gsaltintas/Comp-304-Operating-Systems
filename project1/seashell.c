@@ -487,6 +487,7 @@ void find_command_path(char *command_name, char *path)
 	strcpy(path, "");
 	return;
 }
+
 void handle_shortdir(struct command_t *command)
 {
 
@@ -518,8 +519,8 @@ void handle_shortdir(struct command_t *command)
 	else if (!strcmp(command->args[1], "clear"))
 	{
 		remove(SHORTDIR_FILE);
-	shortdir_file = fopen(SHORTDIR_FILE, "a+");
-	fclose(shortdir_file);
+		shortdir_file = fopen(SHORTDIR_FILE, "a+");
+		fclose(shortdir_file);
 	}
 	else if (!strcmp(command->args[1], "list"))
 	{
@@ -538,7 +539,7 @@ void set_shortdir_command(char *command_name)
 	 * if it exists deletes the first command,
 	 * adds the command to shortdir file
 	 */
-	char *string;
+	char *string = malloc(1024);
 	char cwd[1024];
 	getcwd(cwd, sizeof(cwd));
 	char c[1024];
@@ -553,6 +554,7 @@ void set_shortdir_command(char *command_name)
 	shortdir_file = fopen(SHORTDIR_FILE, "a+");
 	fputs(c, shortdir_file);
 	fclose(shortdir_file);
+	free(string);
 }
 
 void delete_shortdir_command(char *command_name)
@@ -563,67 +565,48 @@ void delete_shortdir_command(char *command_name)
 	 * copies each line except for the corresponding line to a swap file
 	 * and replaces the original file
 	 */
-	char *s;
-	// printf("Ji\n");
-	int found_line=-1;
-	// found_line = find_corresponding_location(command_name, s);
-	shortdir_file = fopen(SHORTDIR_FILE, "r");
-	char ch;
-	char string[255];
-	int line_no = 0;
-
-	while (fscanf(shortdir_file, "%s", string) == 1)
-	{
-		// line_no++;
-		printf("Current line no: %d%s\n", line_no, string);
-		if (!strcmp(string, command_name))
-		{
-			// fscanf(shortdir_file, "%s", string);
-			fclose(shortdir_file);
-			found_line=line_no;
-			printf("%d\n",found_line);
-			break;
-		}
-		line_no++;
-		fscanf(shortdir_file, "%s", string);
-	}
-	fclose(shortdir_file);
-	// printf("Found found_line: %d\t%s\n", find_corresponding_location(command_name, s), s);
-	if (found_line < 0)
+	int line;
+	char *location = malloc(1024);
+	line = find_corresponding_location(command_name, location);
+	if (line < 0)
 	{
 		printf("Shortdir command doesn't exit: %s\n", command_name);
-		return;
 	}
-	printf("Opening seap file\n");
-	shortdir_file = fopen(SHORTDIR_FILE, "r");
-	FILE *swap = fopen("swap", "w");
-	int current_line = 0;
-	ch = fgetc(shortdir_file);
-	printf("Frist char: %c\n", ch);
-	// while (ch != EOF)
-	while (!feof(shortdir_file))
+	else
 	{
-		if (current_line != found_line)
+		FILE *swap = fopen("swap", "w");
+		shortdir_file = fopen(SHORTDIR_FILE, "r");
+		int current_line = 0;
+
+		char ch = fgetc(shortdir_file);
+		while (ch != EOF)
 		{
-			printf("%d\t%d\t%c\n", current_line,found_line, ch);
-			fputc(ch, swap);
+			if (current_line != line)
+			{
+				fputc(ch, swap);
+			}
+			if (ch == '\n')
+			{
+				current_line++;
+			}
+			ch = fgetc(shortdir_file);
 		}
-		if (ch == '\n')
-		{
-			current_line++;
-		}
-		ch = fgetc(shortdir_file);
+		fclose(shortdir_file);
+		fclose(swap);
+		remove(SHORTDIR_FILE);
+		rename("swap", SHORTDIR_FILE);
 	}
-	fclose(shortdir_file);
-	fclose(swap);
-	int l;
-	scanf("%d", &l);
-	remove(SHORTDIR_FILE);
-	rename("swap", SHORTDIR_FILE);
+
+	free(location);
 }
 
 int find_corresponding_location(char *command_name, char *location)
 {
+	/**
+	 * searches for the command_name in the shortdir files and if found
+	 * copies it to location and returns the line number,
+	 * otherwise copies "" to location and returns -1
+	 */ 
 	shortdir_file = fopen(SHORTDIR_FILE, "a+");
 	char ch;
 	char string[255];
@@ -631,12 +614,10 @@ int find_corresponding_location(char *command_name, char *location)
 
 	while (fscanf(shortdir_file, "%s", string) == 1)
 	{
-		// printf("Current line no: %d%s\n", line_no, string);
 		if (!strcmp(string, command_name))
 		{
 			fscanf(shortdir_file, "%s", string);
 			strcpy(location, string);
-			// printf("Found: %d", line_no);
 			fclose(shortdir_file);
 			return line_no;
 		}
@@ -645,12 +626,14 @@ int find_corresponding_location(char *command_name, char *location)
 	}
 	fclose(shortdir_file);
 	strcpy(location, "");
-	// printf("returning -1");
 	return (-1);
 }
 
 void list_shortdir_associations()
 {
+	/**
+	 * lists all shortdir associations
+	 */ 
 	printf("Existing file associations:\n");
 	shortdir_file = fopen(SHORTDIR_FILE, "r");
 	char *line;
