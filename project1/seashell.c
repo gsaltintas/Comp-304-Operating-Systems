@@ -328,6 +328,7 @@ void highlight(char *word, char *file_location, char *color);
 void schedule_alarm(char *hour, char *minute, char *song);
 // pat 5
 void kdiff_all_lines(char *f1, char *f2);
+void kdiff_binary(char *f1, char *f2);
 
 int main()
 {
@@ -457,10 +458,11 @@ int process_command(struct command_t *command)
 		}
 		else if (!strcmp(command->name, "kdiff"))
 		{
-			// if (command->arg_count != 5) {
-			// 	printf("Please enter 2 arguments: ");
-			// }
-			kdiff_all_lines(command->args[1], command->args[2]);
+			if (!strcmp(command->args[1], "-b"))
+			{
+				kdiff_binary(command->args[2], command->args[3]);
+			}
+			kdiff_all_lines(command->args[2], command->args[3]);
 		}
 		else
 		{
@@ -789,16 +791,16 @@ void schedule_alarm(char *hour, char *minute, char *song)
 // part 5
 void kdiff_all_lines(char *f1, char *f2)
 {
-	FILE *fd1, *fd2;
-	fd1 = fopen(f1, "r");
-	fd2 = fopen(f2, "r");
+	FILE *file1, *file2;
+	file1 = fopen(f1, "r");
+	file2 = fopen(f2, "r");
 	char *line1, *line2;
 	size_t len1 = 0;
 	size_t len2 = 0;
 	ssize_t read1, read2;
 	int line_no = 0;
 	int total_diff = 0;
-	while ((read1 = getline(&line1, &len1, fd1) != -1) && (read2 = getline(&line2, &len2, fd2) != -1))
+	while ((read1 = getline(&line1, &len1, file1) != -1) && (read2 = getline(&line2, &len2, file2) != -1))
 	{
 		if (strcmp(line1, line2))
 		{
@@ -809,15 +811,76 @@ void kdiff_all_lines(char *f1, char *f2)
 		}
 		line_no++;
 	}
-	// printf("%ld", read1 * read2);
-	// if (read1 * read2 == -1|| read1*read2==0)
-	// {
-	// 	printf("Wrong!");
-	// 		printf("%s:Line %d: %s", f1,line_no, line1 );
-	// 		printf("%s:Line %d: %s", f2,line_no, line2 );
-	// }
 	if (total_diff == 0)
 		printf("The two files are identical.\n");
 	else
 		printf("%d different lines found.\n", total_diff);
+	fclose(file1);
+	fclose(file2);
 }
+
+void kdiff_binary(char *f1, char *f2)
+{
+	FILE *file1, *file2;
+	char byte1, byte2;
+	int diff_bytes = 0;
+	file1 = fopen(f1, "rb");
+	file2 = fopen(f2, "rb");
+	while ((byte1 = fgetc(file1)) != EOF && (byte2 = fgetc(file2)) != EOF)
+	{
+		// printf("%c\t%c\n",byte1, byte2 );
+		if (byte1 != byte2)
+		{
+			diff_bytes += 1;
+		}
+	}
+	if (diff_bytes > 0)
+		printf("%d bytes are different.\n", diff_bytes);
+	else
+		printf("Two files are identical.");
+	// const char *fn1, *fn2;
+	// strcpy(fn1, f1);
+	// strcpy(fn2, f2);
+
+	// file1 = open(fn1, O_RDONLY);
+	// file2 = open(fn2, O_RDONLY);
+	// // if (file1 == NULL)
+	// // {
+	// // 	printf("Error opening: %s\n", f1);
+	// // }
+	// // else if (file2 == NULL)
+	// // {
+	// // 	printf("Error opening: %s\n", f2);
+	// // }
+	// // else
+	// {
+	// 	unsigned char buffer1[4096], buffer2[4096];
+	// 	size_t size1, size2;
+
+	// 	int line_no = 0;
+	// 	while (1)
+	// 	{
+	// 		size1 = read(file1, b1, 1);
+	// 		size2 = read(file2, b2, 1);
+	// 		if (size1 == 0 || size2 == 0)
+	// 		{
+	// 			break;
+	// 		}
+	// 		if (size1 == -1 || size2 == -1)
+	// 		{
+	// 			printf("Err\n");
+	// 			break;
+	// 		}
+	// 		if (b1!=b2){
+	// 			printf("Diff\n");
+	// 		}
+	// 	}
+	// 	// while ((size1 = fread(buffer1, 1, sizeof(buffer1), file1) > 0) && (size2 = fread(buffer2, 1, sizeof(buffer2), file2) > 0))
+	// 	// {
+	// 	// 	printf("%s\n%s\n", buffer1, buffer2);
+	// 	// }
+	// }
+	fclose(file1);
+	fclose(file2);
+}
+
