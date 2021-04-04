@@ -1041,7 +1041,7 @@ void get_payload(struct user_email *user, struct curl_slist *recipients)
 			// recepient name
 			strsep(&cc, "<");
 			email = strsep(&cc, ">");
-			recipients = curl_slist_append(recipients, email);
+			//recipients = curl_slist_append(recipients, email);
 		}
 	}
 
@@ -1082,80 +1082,7 @@ void get_payload(struct user_email *user, struct curl_slist *recipients)
 	// for (int i=0; i<)
 }
 
-// char *get_payload_old(struct user_email *user, struct curl_slist *recipients)
-// {
-// 	FILE *file;
-// 	char byte;
-// 	int diff_bytes = 0;
-// 	file = fopen("email.txt", "r");
-// 	size_t len = 0;
-// 	ssize_t read;
-// 	char *line, *to, *cc, *email, *subject, *body, *payload_text;
-// 	payload_text = malloc(1);
-// 	read = getline(&line, &len, file);
 
-// 	strcat(payload_text, line);
-// 	// omit first TO:
-// 	strsep(&line, " ");
-// 	while (strcmp((to = strsep(&line, ";")), "\n"))
-// 	{
-// 		if (strcmp(to, " "))
-// 		{
-// 			// recepient name
-// 			strsep(&to, "<");
-// 			email = strsep(&to, ">");
-// 			recipients = curl_slist_append(recipients, email);
-
-// 			// printf("%s\n", email);
-// 		}
-// 	}
-
-// 	strcat(payload_text, "From: ");
-// 	strcat(payload_text, user->name);
-// 	strcat(payload_text, "<");
-// 	strcat(payload_text, user->email);
-// 	strcat(payload_text, ">\n");
-
-// 	read = getline(&line, &len, file);
-// 	strcat(payload_text, line);
-// 	// omit first TO:
-// 	strsep(&line, "\"");
-// 	while (strcmp((cc = strsep(&line, "\"")), "\n"))
-// 	{
-// 		if (strcmp(cc, " "))
-// 		{
-// 			// recepient name
-// 			strsep(&cc, "<");
-// 			email = strsep(&cc, ">");
-// 			recipients = curl_slist_append(recipients, email);
-// 		}
-// 	}
-
-// 	// read subject
-// 	read = getline(&line, &len, file);
-// 	strcat(payload_text, line);
-// 	strcat(payload_text, "\n");
-// 	strsep(&line, " ");
-// 	subject = strsep(&line, "\n");
-// 	printf("Email subject: %s\n", subject);
-
-// 	// read message body
-// 	read = getline(&line, &len, file);
-// 	strsep(&line, " ");
-// 	body = strdup(line);
-// 	while ((read = getline(&line, &len, file)) != -1)
-// 	{
-// 		strcat(body, line);
-// 	}
-// 	printf("Email body: %s\n", body);
-
-// 	fclose(file);
-
-// 	strcat(payload_text, body);
-// 	strcat(payload_text, NULL);
-
-// 	return payload_text;
-// }
 void send_email()
 {
 	struct user_email *user = get_email_details();
@@ -1185,7 +1112,7 @@ void send_email()
 		curl_easy_setopt(curl, CURLOPT_URL, "smtp://smtp.gmail.com:587");
 		// curl_easy_setopt(curl, CURLOPT_URL, "smtps://smtp.gmail.com:465");
 		curl_easy_setopt(curl, CURLOPT_USE_SSL, (long)CURLUSESSL_ALL);
-
+		recipients = curl_slist_append(recipients, user->email);
 		// payload_text =
 		get_payload(user, recipients);
 
@@ -1213,35 +1140,15 @@ void send_email()
 
 		// char **payload_ptr = payload_text;
 		infilesize = 0;
-		// infilesize = sizeof(payload_text)/8;
-		// printf("Payload text size: %ld\n", sizeof(payload_text));
-		// char *p_text=malloc(size_of(payload_text));
-		// size_t offset=0;
-		// for (size_t i = 0; i < sizeof(payload_text); i++)
-		// {
-		// 	if (payload_text[i] != NULL)
-		// 		infilesize += (long)strlen(payload_text[i]);
-		// }
-		// const char **p_text = payload_text;
-		// // p_text=strdup(payload_text);
 		for (p = payload_text; *p; ++p)
 		{
 			printf("%s",*p);
 			infilesize += (long)strlen(*p);
 			// infilesize += (long)strlen(*p);
 		}
-		// for (int i = 0; i < 5; i++)
-		// {
-		// 	printf("%s\n",payload_text[i]);
-		// 	// printf("%s\n", payload_text[i]);
-		// 	if (payload_text[i] != NULL)
-		// 		infilesize += strlen(payload_text[i]);
-		// }
 		printf("%ld\n", infilesize);
 		curl_easy_setopt(curl, CURLOPT_INFILESIZE, infilesize);
-		/* Since the traffic will be encrypted, it is very useful to turn on debug
-     * information within libcurl to see what is happening during the transfer.
-     */
+	
 		printf("Passed file size\n");
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 		/* Perform the append */
@@ -1257,5 +1164,7 @@ void send_email()
 		/* Always cleanup */
 		curl_easy_cleanup(curl);
 		curl_easy_reset(curl);
+		static const char *payload_text[1024];
+		
 	}
 }
