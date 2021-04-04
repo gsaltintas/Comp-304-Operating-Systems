@@ -18,7 +18,7 @@ char *path_locations[25];
 FILE *shortdir_file;
 char SHORTDIR_FILE[1024];
 // char *payload_text;
-char * payload_text[1024];
+static char *payload_text[1024];
 // char **payload_ptr = payload_text;
 
 enum return_codes
@@ -991,9 +991,11 @@ void get_payload(struct user_email *user, struct curl_slist *recipients)
 	char *line, *to, *cc, *email, *subject, *body;
 	// payload_text = malloc(1);
 	read = getline(&line, &len, file);
-char **payload_ptr = payload_text;
+	char **payload_ptr = payload_text;
 
-	payload_ptr[line_no++]=line;
+	// payload_ptr[line_no]=malloc(line);
+	payload_ptr[line_no++] = strdup(line);
+	printf("Payload: %s\n", payload_text[line_no - 1]);
 	// omit first TO:
 	strsep(&line, " ");
 	while (strcmp((to = strsep(&line, ";")), "\n"))
@@ -1005,26 +1007,32 @@ char **payload_ptr = payload_text;
 			email = strsep(&to, ">");
 			recipients = curl_slist_append(recipients, email);
 
-			// printf("%s\n", email);
+			printf("%s\n", email);
 		}
 	}
 
-	char *p=malloc(1);
+	char *p = malloc(1);
 	// p="";
-	p=strdup( "From: ");
+	p = strdup("From: ");
 	strcat(p, user->name);
-	strcat(p, "<");
+	strcat(p, " ");
 	strcat(p, user->email);
-	strcat(p, ">\n");
-	payload_ptr[line_no++]=p;
+	strcat(p, "\n");
+	// payload_ptr[line_no]=malloc(p);
+	payload_ptr[line_no++] = strdup(p);
+	printf("Payload: %s\n", payload_text[line_no - 1]);
+
 	printf("%s\n", p);
 
 	read = getline(&line, &len, file);
 	// strcat(payload_text, line);
-	payload_ptr[line_no++]=line;
+	// payload_ptr[line_no]=malloc(line);
+	payload_ptr[line_no++] = strdup(line);
+	printf("Payload: %s\n", payload_text[line_no - 1]);
+
 	// omit first TO:
-	strsep(&line, "\"");
-	while (strcmp((cc = strsep(&line, "\"")), "\n"))
+	strsep(&line, " ");
+	while (strcmp((cc = strsep(&line, ";")), "\n"))
 	{
 		if (strcmp(cc, " "))
 		{
@@ -1037,7 +1045,10 @@ char **payload_ptr = payload_text;
 
 	// read subject
 	read = getline(&line, &len, file);
-		payload_ptr[line_no++]=line;
+	printf("%s\n", line);
+	// payload_ptr[line_no]=malloc(line);
+	payload_ptr[line_no++] = strdup(line);
+	printf("%s\nPayload subject: %s\n", line, payload_text[line_no - 1]);
 
 	// strcat(payload_text, line);
 	// strcat(payload_text, "\n");
@@ -1049,9 +1060,10 @@ char **payload_ptr = payload_text;
 	read = getline(&line, &len, file);
 	strsep(&line, " ");
 	body = strdup(line);
+	payload_ptr[line_no++] = strdup(line);
 	while ((read = getline(&line, &len, file)) != -1)
 	{
-			payload_ptr[line_no++]=line;
+		payload_ptr[line_no++] = strdup(line);
 
 		strcat(body, line);
 	}
@@ -1061,8 +1073,9 @@ char **payload_ptr = payload_text;
 
 	// strcat(payload_text, body);
 	// strcat(payload_text, NULL);
-	payload_ptr[line_no++]=NULL;
+	payload_ptr[line_no++] = NULL;
 	// return payload_text;
+	// for (int i=0; i<)
 }
 
 // char *get_payload_old(struct user_email *user, struct curl_slist *recipients)
@@ -1150,9 +1163,10 @@ void send_email()
 	CURL *curl;
 	CURLcode res = CURLE_OK;
 	struct curl_slist *recipients = NULL;
-
+	// curl_easy_reset(curl);
 	curl = curl_easy_init();
 	if (curl)
+
 	{
 		const char **p;
 		long infilesize;
@@ -1164,32 +1178,69 @@ void send_email()
 		curl_easy_setopt(curl, CURLOPT_USERNAME, user->email);
 		curl_easy_setopt(curl, CURLOPT_PASSWORD, user->password);
 
-		// payload_text = 
+		// payload_text =
 		get_payload(user, recipients);
-		printf("%s\n", payload_text[0]);
+		// printf("P: %s\n", payload_text[1]);
 
 		curl_easy_setopt(curl, CURLOPT_URL, "smtp://smtp.gmail.com:587");
 		// curl_easy_setopt(curl, CURLOPT_URL, "smtps://smtp.gmail.com:465");
 		curl_easy_setopt(curl, CURLOPT_USE_SSL, (long)CURLUSESSL_ALL);
 		curl_easy_setopt(curl, CURLOPT_READFUNCTION, payload_source);
+
+		printf("Hi malloc\n");
+		char *from = malloc(1);
+		printf("Byei malloc\n");
+		from = strdup(user->name);
+		strcat(from, " <");
+		strcat(from, user->email);
+		strcat(from, ">");
+		printf("%s\n", from);
+		printf("Byei malloc\n");
+		// curl_easy_setopt(curl, CURLOPT_MAIL_FROM, from);
+		curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
+
+		printf("Byei malloc\n");
+
+		printf("Passed payload source\n");
 		curl_easy_setopt(curl, CURLOPT_READDATA, &upload_ctx);
 		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+		printf("Passed payload upload\n");
 
-char **payload_ptr = payload_text;
-
+		// char **payload_ptr = payload_text;
 		infilesize = 0;
+		// infilesize = sizeof(payload_text)/8;
+		printf("Payload text size: %ld\n", sizeof(payload_text));
+		// char *p_text=malloc(size_of(payload_text));
+		// size_t offset=0;
+		// for (size_t i = 0; i < sizeof(payload_text); i++)
+		// {
+		// 	if (payload_text[i] != NULL)
+		// 		infilesize += (long)strlen(payload_text[i]);
+		// }
+		// const char **p_text = payload_text;
+		// // p_text=strdup(payload_text);
 		// for (p = payload_text; *p; ++p)
 		{
-			infilesize += (long)strlen(*payload_text);
+			// infilesize += (long)strlen(*p);
+			// infilesize += (long)strlen(*p);
 		}
+		for (int i = 0; i < 5; i++)
+		{
+			printf("%s\n",payload_text[i]);
+			// printf("%s\n", payload_text[i]);
+			if (payload_text[i] != NULL)
+				infilesize += strlen(payload_text[i]);
+		}
+		printf("%ld\n", infilesize);
 		curl_easy_setopt(curl, CURLOPT_INFILESIZE, infilesize);
 		/* Since the traffic will be encrypted, it is very useful to turn on debug
      * information within libcurl to see what is happening during the transfer.
      */
+		printf("Passed file size\n");
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-
 		/* Perform the append */
 		res = curl_easy_perform(curl);
+		printf("Passed perform %d", res);
 		/* Check for errors */
 		if (res != CURLE_OK)
 			fprintf(stderr, "curl_easy_perform() failed: %s\n",
@@ -1199,111 +1250,6 @@ char **payload_ptr = payload_text;
 
 		/* Always cleanup */
 		curl_easy_cleanup(curl);
+		curl_easy_reset(curl);
 	}
 }
-// static const char *payload_text(){
-// 	// "Date: Sat, 03 Apr 2021\r\n", // 21:54:29 +1100\r\n",
-// 	"To: " TO_MAIL ";" TO_MAIL1 "\r\n",
-// 	"From: " FROM_MAIL "(\r\n",
-// 	"Cc: " CC_MAIL "(Another example User)\r\n",
-// 	"Message-ID: "
-// 	"<dcd7cb36-11db-487a-9f3a-e652a9458efd@gulsenaidil@gmail.com\r\n",
-// 	"Subject: IMAP example message\r\n",
-// 	"\r\n", /* empty line to divide headers from body, see RFC5322 */
-// 	"The body of the message starts here.\r\n",
-// 	"\r\n",
-// 	"It could be a lot of lines, could be MIME encoded, whatever.\r\n",
-// 	"Check RFC5322.\r\n",
-// 	NULL};
-// static size_t payload_source(char *ptr, size_t size, size_t nmemb, void *userp)
-// {
-// 	struct upload_status *upload_ctx = (struct upload_status *)userp;
-// 	const char *data;
-
-// 	if ((size == 0) || (nmemb == 0) || ((size * nmemb) < 1))
-// 	{
-// 		return 0;
-// 	}
-
-// 	data = payload_text[upload_ctx->lines_read];
-
-// 	if (data)
-// 	{
-// 		size_t len = strlen(data);
-// 		memcpy(ptr, data, len);
-// 		upload_ctx->lines_read++;
-
-// 		return len;
-// 	}
-
-// 	return 0;
-// }
-
-// int send_email()
-// {
-// 	CURL *curl;
-// 	CURLcode res = CURLE_OK;
-// 	struct curl_slist *recipients = NULL;
-
-// 	curl = curl_easy_init();
-// 	if (curl)
-// 	{
-// 		const char **p;
-// 		long infilesize;
-// 		struct upload_status upload_ctx;
-
-// 		upload_ctx.lines_read = 0;
-
-// 		// /* Set username and password */
-// 		curl_easy_setopt(curl, CURLOPT_USERNAME, "gulsenaidil@gmail.com");
-// 		curl_easy_setopt(curl, CURLOPT_PASSWORD, "G7jnv90#ws");
-
-// 		/* This will create a new message 100. Note that you should perform an
-//         * EXAMINE command to obtain the UID of the next message to create and a
-//         * SELECT to ensure you are creating the message in the OUTBOX. */
-// 		// curl_easy_setopt(curl, CURLOPT_URL, "imap://imap.gmail.com:993");
-// 		curl_easy_setopt(curl, CURLOPT_URL, "smtp://smtp.gmail.com:587");
-// 		// curl_easy_setopt(curl, CURLOPT_URL, "smtps://smtp.gmail.com:465");
-// 		curl_easy_setopt(curl, CURLOPT_USE_SSL, (long)CURLUSESSL_ALL);
-
-// 		/* Add two recipients, in this particular case they correspond to the
-//         * To: and Cc: addressees in the header, but they could be any kind of
-//         * recipient. */
-// 		recipients = curl_slist_append(recipients, TO);
-// 		recipients = curl_slist_append(recipients, TO1);
-// 		recipients = curl_slist_append(recipients, CC);
-// 		curl_easy_setopt(curl, CURLOPT_MAIL_FROM, FROM_MAIL);
-// 		curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
-// 		/* In this case, we're using a callback function to specify the data. You
-//      * could just use the CURLOPT_READDATA option to specify a FILE pointer to
-//      * read from. */
-// 		curl_easy_setopt(curl, CURLOPT_READFUNCTION, payload_source);
-// 		curl_easy_setopt(curl, CURLOPT_READDATA, &upload_ctx);
-// 		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
-
-// 		infilesize = 0;
-// 		for (p = payload_text; *p; ++p)
-// 		{
-// 			infilesize += (long)strlen(*p);
-// 		}
-// 		curl_easy_setopt(curl, CURLOPT_INFILESIZE, infilesize);
-// 		/* Since the traffic will be encrypted, it is very useful to turn on debug
-//      * information within libcurl to see what is happening during the transfer.
-//      */
-// 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-
-// 		/* Perform the append */
-// 		res = curl_easy_perform(curl);
-// 		/* Check for errors */
-// 		if (res != CURLE_OK)
-// 			fprintf(stderr, "curl_easy_perform() failed: %s\n",
-// 					curl_easy_strerror(res));
-// 		/* Free the list of recipients */
-// 		// curl_slist_free_all(TO);
-
-// 		/* Always cleanup */
-// 		curl_easy_cleanup(curl);
-// 	}
-
-// 	return (int)res;
-// }
