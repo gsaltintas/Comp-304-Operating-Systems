@@ -17,10 +17,7 @@ const int SIZE = 25; // max number of locations in the path
 char *path_locations[25];
 FILE *shortdir_file;
 char SHORTDIR_FILE[1024];
-// char *payload_text;
 static const char *payload_text[1024];
-// static const char *payload_text[]={""};
-// char **payload_ptr = payload_text;
 
 enum return_codes
 {
@@ -423,10 +420,6 @@ int process_command(struct command_t *command)
 		command->args[0] = strdup(command->name);
 		// set args[arg_count-1] (last) to NULL
 		command->args[command->arg_count - 1] = NULL;
-
-		// execvp(command->name, command->args); // exec+args+path
-		// exit(0);
-		/// TODO: do your own exec with path resolving using execv()
 		if (!strcmp(command->name, "shortdir"))
 		{
 
@@ -470,11 +463,21 @@ int process_command(struct command_t *command)
 			{
 				kdiff_binary(command->args[2], command->args[3]);
 			}
-			kdiff_all_lines(command->args[2], command->args[3]);
+			else
+			{
+				kdiff_all_lines(command->args[2], command->args[3]);
+			}
 		}
 		else if (!strcmp(command->name, "email"))
 		{
-			send_email();
+			if (command->arg_count != 2)
+			{
+				printf("Send email receives no argument, modify user.txt and email.txt");
+			}
+			else
+			{
+				send_email();
+			}
 		}
 		else
 		{
@@ -771,6 +774,7 @@ void highlight(char *word, char *file_location, char *color)
 			printf("%s ", string);
 		}
 	}
+	printf("\n");
 	free(string);
 	fclose(file);
 }
@@ -788,8 +792,7 @@ void schedule_alarm(char *hour, char *minute, char *song)
 	strcat(line, hour);
 	strcat(line, " * * * XDG_RUNTIME_DIR=/run/user/$(id -u) DISPLAY=:0.0 /usr/bin/rhythmbox-client --play ");
 	strcat(line, song);
-	strcat(line, "\n"); //home/gsa/code/comp304/comp304/project1/resources/m.mp3\n");
-	// printf("%s\n",line);
+	strcat(line, "\n");
 	FILE *f = fopen("c.txt", "w");
 	fputs(line, f);
 	fclose(f);
@@ -840,7 +843,6 @@ void kdiff_binary(char *f1, char *f2)
 	file2 = fopen(f2, "rb");
 	while ((byte1 = fgetc(file1)) != EOF && (byte2 = fgetc(file2)) != EOF)
 	{
-		// printf("%c\t%c\n",byte1, byte2 );
 		if (byte1 != byte2)
 		{
 			diff_bytes += 1;
@@ -849,55 +851,12 @@ void kdiff_binary(char *f1, char *f2)
 	if (diff_bytes > 0)
 		printf("%d bytes are different.\n", diff_bytes);
 	else
-		printf("Two files are identical.");
-	// const char *fn1, *fn2;
-	// strcpy(fn1, f1);
-	// strcpy(fn2, f2);
-
-	// file1 = open(fn1, O_RDONLY);
-	// file2 = open(fn2, O_RDONLY);
-	// // if (file1 == NULL)
-	// // {
-	// // 	printf("Error opening: %s\n", f1);
-	// // }
-	// // else if (file2 == NULL)
-	// // {
-	// // 	printf("Error opening: %s\n", f2);
-	// // }
-	// // else
-	// {
-	// 	unsigned char buffer1[4096], buffer2[4096];
-	// 	size_t size1, size2;
-
-	// 	int line_no = 0;
-	// 	while (1)
-	// 	{
-	// 		size1 = read(file1, b1, 1);
-	// 		size2 = read(file2, b2, 1);
-	// 		if (size1 == 0 || size2 == 0)
-	// 		{
-	// 			break;
-	// 		}
-	// 		if (size1 == -1 || size2 == -1)
-	// 		{
-	// 			printf("Err\n");
-	// 			break;
-	// 		}
-	// 		if (b1!=b2){
-	// 			printf("Diff\n");
-	// 		}
-	// 	}
-	// 	// while ((size1 = fread(buffer1, 1, sizeof(buffer1), file1) > 0) && (size2 = fread(buffer2, 1, sizeof(buffer2), file2) > 0))
-	// 	// {
-	// 	// 	printf("%s\n%s\n", buffer1, buffer2);
-	// 	// }
-	// }
+		printf("Two files are identical.\n");
 	fclose(file1);
 	fclose(file2);
 }
 
-#include <string.h>
-#include <curl/curl.h>
+// Part 6
 struct user_email
 {
 	char *name;
@@ -950,14 +909,6 @@ struct upload_status
 	int lines_read;
 };
 
-void get_recepients(struct curl_slist *recipients)
-{
-}
-
-void payload_dummy()
-{
-}
-
 static size_t payload_source(char *ptr, size_t size, size_t nmemb, void *userp)
 {
 	struct upload_status *upload_ctx = (struct upload_status *)userp;
@@ -975,12 +926,12 @@ static size_t payload_source(char *ptr, size_t size, size_t nmemb, void *userp)
 		size_t len = strlen(data);
 		memcpy(ptr, data, len);
 		upload_ctx->lines_read++;
-// printf("Data length: %ld\n", len);
 		return len;
 	}
 
 	return 0;
 }
+
 void get_payload(struct user_email *user, struct curl_slist *recipients)
 {
 	int line_no = 0;
@@ -990,11 +941,8 @@ void get_payload(struct user_email *user, struct curl_slist *recipients)
 	size_t len = 0;
 	ssize_t read;
 	char *line, *to, *cc, *email, *subject, *body;
-	// payload_text = malloc(1);
 	read = getline(&line, &len, file);
-	// char **payload_ptr = payload_text;
 
-	// payload_ptr[line_no]=malloc(line);
 	payload_text[line_no++] = strdup(line);
 	printf("Payload: %s\n", payload_text[line_no - 1]);
 	// omit first TO:
@@ -1006,31 +954,22 @@ void get_payload(struct user_email *user, struct curl_slist *recipients)
 			// recepient name
 			strsep(&to, "<");
 			email = strsep(&to, ">");
-			
+
 			recipients = curl_slist_append(recipients, email);
-			// printf("%s\n", recipients);
-			printf("%s\n", email);
 		}
 	}
 
 	char *p = malloc(1);
-	// p="";
 	p = strdup("From: ");
 	strcat(p, user->name);
 	strcat(p, " ");
 	strcat(p, user->email);
 	strcat(p, "\n");
-	// payload_text[line_no]=malloc(p);
 	payload_text[line_no++] = strdup(p);
 	printf("Payload: %s\n", payload_text[line_no - 1]);
 
-	printf("%s\n", p);
-
 	read = getline(&line, &len, file);
-	// strcat(payload_text, line);
-	// payload_text[line_no]=malloc(line);
 	payload_text[line_no++] = strdup(line);
-	printf("Payload: %s\n", payload_text[line_no - 1]);
 
 	// omit first TO:
 	strsep(&line, " ");
@@ -1041,23 +980,16 @@ void get_payload(struct user_email *user, struct curl_slist *recipients)
 			// recepient name
 			strsep(&cc, "<");
 			email = strsep(&cc, ">");
-			//recipients = curl_slist_append(recipients, email);
+			recipients = curl_slist_append(recipients, email);
 		}
 	}
 
 	// read subject
-		// payload_text[line_no++] = strdup("\n");
 	read = getline(&line, &len, file);
-	printf("%s\n", line);
-	// payload_text[line_no]=malloc(line);
 	payload_text[line_no++] = strdup(line);
-	printf("%s\nPayload subject: %s\n", line, payload_text[line_no - 1]);
 
-	// strcat(payload_text, line);
-	// strcat(payload_text, "\n");
 	strsep(&line, " ");
 	subject = strsep(&line, "\n");
-	printf("Email subject: %s\n", subject);
 
 	// read message body
 	read = getline(&line, &len, file);
@@ -1075,13 +1007,8 @@ void get_payload(struct user_email *user, struct curl_slist *recipients)
 
 	fclose(file);
 
-	// strcat(payload_text, body);
-	// strcat(payload_text, NULL);
 	payload_text[line_no++] = NULL;
-	// return payload_text;
-	// for (int i=0; i<)
 }
-
 
 void send_email()
 {
@@ -1094,10 +1021,8 @@ void send_email()
 	CURL *curl;
 	CURLcode res = CURLE_OK;
 	struct curl_slist *recipients = NULL;
-	// curl_easy_reset(curl);
 	curl = curl_easy_init();
 	if (curl)
-
 	{
 		const char **p;
 		long infilesize;
@@ -1110,23 +1035,15 @@ void send_email()
 		curl_easy_setopt(curl, CURLOPT_PASSWORD, user->password);
 
 		curl_easy_setopt(curl, CURLOPT_URL, "smtp://smtp.gmail.com:587");
-		// curl_easy_setopt(curl, CURLOPT_URL, "smtps://smtp.gmail.com:465");
 		curl_easy_setopt(curl, CURLOPT_USE_SSL, (long)CURLUSESSL_ALL);
 		recipients = curl_slist_append(recipients, user->email);
-		// payload_text =
 		get_payload(user, recipients);
 
-
-		// printf("P: %s\n", payload_text[1]);
-		printf("Hi malloc\n");
 		char *from = malloc(1);
-		printf("Byei malloc\n");
 		from = strdup(user->name);
 		strcat(from, " ");
 		strcat(from, user->email);
 		strcat(from, "( ");
-		printf("%s\n", from);
-		printf("Byei malloc\n");
 		curl_easy_setopt(curl, CURLOPT_MAIL_FROM, from);
 		curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
 		curl_easy_setopt(curl, CURLOPT_READFUNCTION, payload_source);
@@ -1138,22 +1055,16 @@ void send_email()
 		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
 		printf("Passed payload upload\n");
 
-		// char **payload_ptr = payload_text;
 		infilesize = 0;
 		for (p = payload_text; *p; ++p)
 		{
-			printf("%s",*p);
 			infilesize += (long)strlen(*p);
-			// infilesize += (long)strlen(*p);
 		}
-		printf("%ld\n", infilesize);
 		curl_easy_setopt(curl, CURLOPT_INFILESIZE, infilesize);
-	
-		printf("Passed file size\n");
+
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 		/* Perform the append */
 		res = curl_easy_perform(curl);
-		printf("Passed perform %d", res);
 		/* Check for errors */
 		if (res != CURLE_OK)
 			fprintf(stderr, "curl_easy_perform() failed: %s\n",
@@ -1161,10 +1072,10 @@ void send_email()
 		/* Free the list of recipients */
 		curl_slist_free_all(recipients);
 
-		/* Always cleanup */
+		/*  cleanup */
 		curl_easy_cleanup(curl);
 		curl_easy_reset(curl);
+		// reset payload text if user wants to send a new email
 		static const char *payload_text[1024];
-		
 	}
 }
