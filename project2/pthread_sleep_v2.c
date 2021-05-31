@@ -4,12 +4,29 @@
 #include <time.h>
 #include <unistd.h>
 #include <ctype.h>
+#include "queue.c"
+
+#define event_duration 5
+#define MAX_QUEUE_SIZE 1024
 
 int n = 0;
 int t = 0;
 float p = 0;
-float q = 0;
+int q = 0;
+int current_q = 0;
 float b = 0;
+struct Queue *queue;
+int firstAnswer = 1;
+
+// Getting the mutex
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_cond_t questionAsked =
+    PTHREAD_COND_INITIALIZER;
+pthread_cond_t questionAnswered =
+    PTHREAD_COND_INITIALIZER;
+pthread_cond_t allDone = PTHREAD_COND_INITIALIZER;
+pthread_cond_t next = PTHREAD_COND_INITIALIZER;
 
 /**
  * pthread_sleep takes an integer number of seconds to pause the current thread
@@ -17,11 +34,11 @@ float b = 0;
  * updated by Muhammed Nufail Farooqi
  * updated by Fahrican Kosar
  */
-int pthread_sleep(double seconds)
+int pthread_sleep_old(double seconds)
 {
-    pthread_mutex_t mutex;
+    pthread_mutex_t sleep_mutex;
     pthread_cond_t conditionvar;
-    if (pthread_mutex_init(&mutex, NULL))
+    if (pthread_mutex_init(&sleep_mutex, NULL))
     {
         return -1;
     }
@@ -39,15 +56,34 @@ int pthread_sleep(double seconds)
     timetoexpire.tv_sec = tp.tv_sec + (long)seconds + (new_nsec / (long)1e9);
     timetoexpire.tv_nsec = new_nsec % (long)1e9;
 
-    pthread_mutex_lock(&mutex);
-    int res = pthread_cond_timedwait(&conditionvar, &mutex, &timetoexpire);
-    pthread_mutex_unlock(&mutex);
-    pthread_mutex_destroy(&mutex);
+    pthread_mutex_lock(&sleep_mutex);
+    int res = pthread_cond_timedwait(&conditionvar, &sleep_mutex, &timetoexpire);
+    pthread_mutex_unlock(&sleep_mutex);
+    pthread_mutex_destroy(&sleep_mutex);
     pthread_cond_destroy(&conditionvar);
 
     //Upon successful completion, a value of zero shall be returned
     return res;
 }
+
+int pthread_sleep(double seconds, pthread_mutex_t *mutex, pthread_cond_t *conditionvar)
+{
+    struct timeval tp;
+    struct timespec timetoexpire;
+    // When to expire is an absolute time, so get the current time and add
+    // it to our delay time
+    gettimeofday(&tp, NULL);
+    long new_nsec = tp.tv_usec * 1000 + (seconds - (long)seconds) * 1e9;
+    timetoexpire.tv_sec = tp.tv_sec + (long)seconds + (new_nsec / (long)1e9);
+    timetoexpire.tv_nsec = new_nsec % (long)1e9;
+
+    pthread_mutex_lock(&mutex);
+    int res = pthread_cond_timedwait(&conditionvar, &mutex, &timetoexpire);
+    pthread_mutex_unlock(&mutex);
+    //Upon successful completion, a value of zero shall be returned
+    return res;
+}
+
 /**
  * parses command line arguments from the user
  *  n, q, p, t, b,
@@ -59,7 +95,7 @@ void get_params(int argc, char *argv[])
     int opterr = 0;
     while ((opt = getopt(argc, argv, "n:p:q:t:b:")) != -1)
     {
-        printf("heee %c %c %s\n", opt, optopt, optarg);
+        // printf("heee %c %c %s\n", opt, optopt, optarg);
         switch (opt)
         {
         case 'n':
@@ -69,7 +105,7 @@ void get_params(int argc, char *argv[])
             p = atof(optarg);
             break;
         case 'q':
-            q = atof(optarg);
+            q = atoi(optarg);
             break;
         case 't':
             t = atoi(optarg);
@@ -77,20 +113,141 @@ void get_params(int argc, char *argv[])
         case 'b':
             b = atof(optarg);
             break;
-        case '?':
-            printf("Invalid argument option.\n");
-            break;
         case ':':
-            printf('Option %c reqires an argument.', optopt);
+
+            break;
+        case '?':
+            if (opt == 'n' || opt == 'p' || opt == 'q' || opt == 't' || opt == 'b')
+                printf('Option %c reqires an argument.', opt);
+            else
+                printf("Invalid argument option.\n");
+
             break;
         }
     }
-    printf("User chosen parameters are as follows:\n\tn: %d\tp: %f\tq: %f\n", n, p, q, );
+    printf("User chosen parameters are as follows:\n\tn: %d\tp: %f\tq: %d\n", n, p, q);
     printf("\tt: %d\tb: %f\n", t, b);
+}
+
+void *Speaker(void *threadid)
+{
+
+    int *id_ptr, taskid;
+    float t_speak = rand() % t + (rand() % 1000) * 0.001;
+    id_ptr = (int *)threadid;
+    taskid = *id_ptr;
+    printf("Thread %d: %s, %.3f\n", taskid, "Hi", t_speak);
+    while (1)
+    {
+        pthread_mutex_lock(&mutex);
+        pthread_cond_wait(&questionAsked, &mutex);
+
+        printf("%d: Question asked\n", taskid);
+        if ((rand() % 1000) * 0.001 <= p)
+        // if (1 == 1)
+        {
+            enqueue(queue, taskid);
+            printf("%d: I wanna answer, %d\n", taskid, queue->length);
+        }
+        pthread_mutex_unlock(&mutex);
+
+        while (!isEmpty(queue))
+        {
+            if (head(queue) == taskid)
+            {
+                pthread_mutex_lock(&mutex);
+                if (firstAnswer != 1)
+                    pthread_cond_wait(&next, &mutex);
+                else
+                    firstAnswer = 0;
+                // pthread_mutex_lock(&mutex);
+                printf("%d: I am speaking for %.3f seconds.\n", taskid, t_speak);
+                // pthread_mutex_unlock(&mutex);
+
+                pthread_sleep_old(t_speak);
+
+                // pthread_mutex_lock(&mutex);
+                dequeue(queue);
+                if (isEmpty(queue))
+                {
+                    pthread_cond_signal(&allDone);
+                    firstAnswer = 1;
+                }
+                else
+                    pthread_cond_broadcast(&next);
+                pthread_mutex_unlock(&mutex);
+                break;
+                // pthread_mutex_unlock(&mutex);
+            }
+        }
+
+        // pthread_mutex_unlock(&mutex);
+    }
+    pthread_exit(NULL);
+}
+
+void *Moderator()
+{
+    while (1)
+    {
+        pthread_mutex_lock(&mutex);
+
+        if (isEmpty(queue) && current_q < q)
+        {
+            current_q++;
+            printf("Moderator asks question %d\n", current_q);
+            pthread_cond_broadcast(&questionAsked);
+            pthread_cond_wait(&allDone, &mutex);
+            printf("All commentators done.\n");
+        }
+        else
+        {
+            // todo
+            // printf("Moderator in else");
+            // pthread_cond_wait(&questionAnswered, &mutex);
+        }
+        // Get the mutex unlocked
+        pthread_mutex_unlock(&mutex);
+        // pthread_cond_wait(&questionAnswered, &mutex);
+    }
 }
 
 // int main(int argc, char **argv)
 int main(int argc, char *argv[])
 {
+    // Use current time as seed for random generator
+    srand(time(0));
+    printf("%ld\n", sizeof(queue));
     get_params(argc, argv);
+
+    // initialize queue
+    queue = initialize_queue(MAX_QUEUE_SIZE);
+    // create moderator thread
+    pthread_t moderator_thread;
+
+    pthread_t speaker_threads[n];
+    printf("%ld", speaker_threads);
+    int *taskids[n];
+    int rc, ind;
+    // create speaker threads
+    for (ind = 0; ind < n; ind++)
+    {
+        taskids[ind] = (int *)malloc(sizeof(int));
+        *taskids[ind] = ind;
+        printf("Creating speaker %d\n", ind);
+        rc = pthread_create(&speaker_threads[ind], NULL, Speaker, (void *)taskids[ind]);
+        if (rc)
+        {
+            printf("ERROR; return code from pthread_create() is %d\n", rc);
+            exit(-1);
+        }
+    }
+    int moderator = pthread_create(&moderator_thread, NULL, Moderator, NULL);
+
+    for (ind = 0; ind < n; ind++)
+    {
+        pthread_join(&speaker_threads[ind], NULL);
+    }
+    pthread_join(moderator_thread, NULL);
+    pthread_exit(NULL);
 }
