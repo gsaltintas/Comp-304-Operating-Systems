@@ -17,9 +17,13 @@ int current_q = 0;
 float b = 0;
 struct Queue *queue;
 int firstAnswer = 1;
+int count;
+pthread_cond_t *answer;
+int breaking_event = 0; // 0 no event, 1 yes
 
 // Getting the mutex
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t breaking_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t questionAsked =
     PTHREAD_COND_INITIALIZER;
@@ -27,7 +31,15 @@ pthread_cond_t questionAnswered =
     PTHREAD_COND_INITIALIZER;
 pthread_cond_t allDone = PTHREAD_COND_INITIALIZER;
 pthread_cond_t next = PTHREAD_COND_INITIALIZER;
+pthread_cond_t breaking = PTHREAD_COND_INITIALIZER;
 
+struct SpeakerStruct
+{
+    int taskid;
+    pthread_cond_t cond;
+};
+
+// pthread_cond_t *answer;
 /**
  * pthread_sleep takes an integer number of seconds to pause the current thread
  * original by Yingwu Zhu
@@ -133,10 +145,10 @@ void *Speaker(void *threadid)
 {
 
     int *id_ptr, taskid;
-    float t_speak = rand() % t + (rand() % 1000) * 0.001;
     id_ptr = (int *)threadid;
     taskid = *id_ptr;
-    printf("Thread %d: %s, %.3f\n", taskid, "Hi", t_speak);
+
+    printf("Thread %d: %s\n", taskid, "Hi");
     while (1)
     {
         pthread_mutex_lock(&mutex);
@@ -146,42 +158,41 @@ void *Speaker(void *threadid)
         if ((rand() % 1000) * 0.001 <= p)
         // if (1 == 1)
         {
+            float t_speak = rand() % t + (rand() % 1000) * 0.001;
             enqueue(queue, taskid);
+            count++;
             printf("%d: I wanna answer, %d\n", taskid, queue->length);
+            pthread_cond_wait(&answer[taskid], &mutex);
+
+            printf("%d: I am speaking for %.3f seconds.\n", taskid, t_speak);
+
+            while (t_speak > 0)
+            {
+                float to_sleep;
+                if (t_speak > 1)
+                    to_sleep = 1;
+                else
+                    to_sleep = t_speak;
+                pthread_sleep_old(to_sleep);
+                t_speak -= to_sleep;
+
+                if (breaking_event == 1)
+                {
+                    if (t_speak > 0)
+                        printf("%d: I stopped %.3f seconds before my end time due to breaking event\n", taskid, t_speak);
+                    pthread_mutex_lock(&breaking_mutex);
+                    pthread_cond_wait(&breaking, &breaking_mutex);
+                    t_speak = 0;
+                    pthread_mutex_unlock(&breaking_mutex);
+                }
+            }
+            pthread_cond_broadcast(&next);
+        }
+        else
+        {
+            count++;
         }
         pthread_mutex_unlock(&mutex);
-
-        while (!isEmpty(queue))
-        {
-            if (head(queue) == taskid)
-            {
-                pthread_mutex_lock(&mutex);
-                if (firstAnswer != 1)
-                    pthread_cond_wait(&next, &mutex);
-                else
-                    firstAnswer = 0;
-                // pthread_mutex_lock(&mutex);
-                printf("%d: I am speaking for %.3f seconds.\n", taskid, t_speak);
-                // pthread_mutex_unlock(&mutex);
-
-                pthread_sleep_old(t_speak);
-
-                // pthread_mutex_lock(&mutex);
-                dequeue(queue);
-                if (isEmpty(queue))
-                {
-                    pthread_cond_signal(&allDone);
-                    firstAnswer = 1;
-                }
-                else
-                    pthread_cond_broadcast(&next);
-                pthread_mutex_unlock(&mutex);
-                break;
-                // pthread_mutex_unlock(&mutex);
-            }
-        }
-
-        // pthread_mutex_unlock(&mutex);
     }
     pthread_exit(NULL);
 }
@@ -192,23 +203,49 @@ void *Moderator()
     {
         pthread_mutex_lock(&mutex);
 
-        if (isEmpty(queue) && current_q < q)
+        if (count == n && isEmpty(queue) && current_q < q)
         {
             current_q++;
             printf("Moderator asks question %d\n", current_q);
             pthread_cond_broadcast(&questionAsked);
-            pthread_cond_wait(&allDone, &mutex);
-            printf("All commentators done.\n");
+            // pthread_cond_wait(&allDone, &mutex);
+            // printf("All commentators done.\n");
+            count = 0;
+        }
+        else if (isEmpty(queue))
+        {
         }
         else
         {
-            // todo
-            // printf("Moderator in else");
-            // pthread_cond_wait(&questionAnswered, &mutex);
+            printf("Moderator in else\n");
+            int speaker = dequeue(queue);
+            pthread_cond_signal(&answer[speaker]);
+            pthread_cond_wait(&next, &mutex);
         }
         // Get the mutex unlocked
         pthread_mutex_unlock(&mutex);
-        // pthread_cond_wait(&questionAnswered, &mutex);
+    }
+}
+
+void *MainThread()
+{
+    while (1)
+    {
+        pthread_sleep_old(1);
+        pthread_mutex_lock(&breaking_mutex);
+        // check breaking events every 1 second
+        if ((rand() % 1000) * 0.001 <= b)
+        {
+            printf("Generating breaking event\n");
+            breaking_event = 1;
+
+            pthread_sleep_old(5);
+
+            printf("Ending breaking event\n");
+            pthread_cond_signal(&breaking);
+        }
+        breaking_event = 0;
+        pthread_mutex_unlock(&breaking_mutex);
     }
 }
 
@@ -219,16 +256,24 @@ int main(int argc, char *argv[])
     srand(time(0));
     printf("%ld\n", sizeof(queue));
     get_params(argc, argv);
+    int rc, ind;
+
+    count = n;
+
+    answer = malloc(sizeof(pthread_cond_t) * n);
+    for (ind = 0; ind < n; ind++)
+        answer[ind] = (pthread_cond_t)PTHREAD_COND_INITIALIZER;
 
     // initialize queue
     queue = initialize_queue(MAX_QUEUE_SIZE);
     // create moderator thread
     pthread_t moderator_thread;
+    //create main thread
+    pthread_t main_thread;
 
     pthread_t speaker_threads[n];
-    printf("%ld", speaker_threads);
     int *taskids[n];
-    int rc, ind;
+
     // create speaker threads
     for (ind = 0; ind < n; ind++)
     {
@@ -243,11 +288,13 @@ int main(int argc, char *argv[])
         }
     }
     int moderator = pthread_create(&moderator_thread, NULL, Moderator, NULL);
+    int main_thread_int = pthread_create(&main_thread, NULL, MainThread, NULL);
 
     for (ind = 0; ind < n; ind++)
     {
         pthread_join(&speaker_threads[ind], NULL);
     }
     pthread_join(moderator_thread, NULL);
+    pthread_join(main_thread, NULL);
     pthread_exit(NULL);
 }
