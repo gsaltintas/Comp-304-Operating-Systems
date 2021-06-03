@@ -2,7 +2,7 @@ CC		= gcc
 CFLAGS	= -g -lpthread
 
 all: project2
-EXEC	= pthread_sleep_v2.c
+EXEC	= project2_code.c
 OBJ		= project2
 
 project2:
