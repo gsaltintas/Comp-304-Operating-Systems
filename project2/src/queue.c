@@ -1,3 +1,6 @@
+/**
+ * Basic Queue data structure implementation
+ */
 struct Queue
 {
     int head, tail, length;
