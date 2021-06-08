@@ -57,8 +57,8 @@ int search_tlb(unsigned char logical_page)
   for (int i = 0; i < TLB_SIZE; i++)
   {
     struct tlbentry tlb_entry = tlb[i];
-    if (tlb_entry.logical == logical_page)
-      return tlb_entry.physical;
+    if (tlb_entry.logical == logical_page){
+      return tlb_entry.physical;}
   }
   return -1;
 }
@@ -106,7 +106,7 @@ int main(int argc, const char *argv[])
 
   // Number of the next unallocated physical page in main memory
   unsigned char free_page = 0;
-
+  
   while (fgets(buffer, BUFFER_SIZE, input_fp) != NULL)
   {
     total_addresses++;
@@ -118,12 +118,9 @@ int main(int argc, const char *argv[])
     int offset = logical_address % 1024;
     int logical_page = (int)logical_address / 1024;
     // int *res = convert_to_binary(logical_address);
-
-    // printf("%d\t%d\t%d\t", logical_address, offset, logical_page);
-    ///////
+    printf("offset:%d\n, page:%d\n", offset, logical_page);
 
     int physical_page = search_tlb(logical_page);
-    // printf("%d\n", physical_page);
     // TLB hit
     if (physical_page != -1)
     {
@@ -137,8 +134,13 @@ int main(int argc, const char *argv[])
       // Page fault
       if (physical_page == -1)
       {
-        // add_to_tlb(logical_page, physical_page);
         /* TODO */
+	physical_page = free_page;
+	free_page++;
+	printf("physical page: %d\n", physical_page);
+	main_memory[physical_page * PAGE_SIZE + offset] = backing[logical_page* PAGE_SIZE + offset];
+	pagetable[logical_page] = physical_page;
+	page_faults++;
       }
 
       add_to_tlb(logical_page, physical_page);
