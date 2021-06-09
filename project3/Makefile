@@ -1,16 +1,21 @@
 CC		= gcc
 CFLAGS	= 
 
-all: project3
-EXEC	= virtmem.c
-OBJ		= project3
+all: clean part1 part2
+EXEC1	= virtmem.c
+EXEC2	= virtmem2.c
+OBJ1	= part1
+OBJ2	= part2
 
-project3:
-	$(CC) $(EXEC) $(CFLAGS) -o $(OBJ)
+part1:
+	$(CC) $(EXEC1) $(CFLAGS) -o $(OBJ1)
+part2:
+	$(CC) $(EXEC2) $(CFLAGS) -o $(OBJ2)
 
 run:
-	if [ ! -f $(OBJ) ]; then  echo "Object file doesn't exist, compiling...\n\n"; make project3; fi
-	# ./$(OBJ) BACKING_STORE.bin address.txt
+	if [ ! -f $(OBJ1) || ! -f $(OBJ2) ]; then  echo "Object file doesn't exist, compiling...\n\n"; make all; fi
+	./$(OBJ1) BACKING_STORE.bin address.txt
 
 clean:
-	rm -f $(OBJ)
+	rm -f $(OBJ1)
+	rm -f $(OBJ2)
